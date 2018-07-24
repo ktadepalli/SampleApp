@@ -1,0 +1,97 @@
+node {
+      customWorkspace "\\hydro\\hydroshare"
+	  parameters {
+        string(name: 'PROJECT', defaultValue: 'imageshare', description: 'changing the projectname in rebranding.sh')
+    }
+   // cleanWs()
+    stage ('checkout')
+    {
+       git branch: 'develop', url: 'https://github.com/heliumdatacommons/commonsshare.git'
+    }
+    stage ('build')
+    {
+        sh 'echo "$ docker stop $(docker ps -a -q)"'
+        sh 'x=`docker ps -a -q`'
+       // sh 'docker stop $(docker ps -a -q)'
+        sh 'echo "$ docker rm -fv $(docker ps -a -q)"'
+        //sh 'docker rm -fv $(docker ps -a -q)'
+        sh 'echo "$ rm -f ~/.ssh/known_hosts"'
+        sh 'rm -f ~/.ssh/known_hosts'
+        sh '''export PATH=$PATH:/usr/local/bin
+
+    CONFIG_FILE=config/hydroshare-config.yaml
+    SETTINGS_FILE=hydroshare/local_settings.py
+    DEBUG=true'''
+     
+        sh '''sed -i "s/HS_SERVICE_UID:.*/HS_SERVICE_UID: 20028/g" config/hydroshare-config.yaml
+        sed -i "s/HS_SERVICE_GID:.*/HS_SERVICE_GID: 10000/g" config/hydroshare-config.yaml'''
+        sh 'sed -i "s/USE_NGINX:.*/USE_NGINX: true/g" config/hydroshare-config.yaml'
+        sh 'sed -i "s/FQDN_OR_IP:.*/FQDN_OR_IP: helium-jenkins.renci.org/g" config/hydroshare-config.yaml' 
+        sh 'sed -i "s/USE_SSL:.*/USE_SSL: true/g" config/hydroshare-config.yaml'
+		sh 'sed -i "s/CommonsShare/${params.userFlag}/g" rebrand.sh'
+        sh 'sed -i "s!HOST_SSL_DIR:.*!HOST_SSL_DIR: /opt/hs-certs!g" config/hydroshare-config.yaml'
+        sh 'sed -i "s/SSL_CERT_FILE:.*/SSL_CERT_FILE: SSL.crt/g" config/hydroshare-config.yaml'
+        sh 'sed -i "s/SSL_KEY_FILE:.*/SSL_KEY_FILE: server.key/g" config/hydroshare-config.yaml'
+        sh '''sed -i "/\\<EMAIL_BACKEND\\>/c\\EMAIL_BACKEND = \'django.core.mail.backends.smtp.EmailBackend\'" hydroshare/local_settings.py
+        sed -i "/\\<EMAIL_HOST_USER\\>/c\\EMAIL_HOST_USER = \'hydroshare@hydroshare.org\'" hydroshare/local_settings.py
+        sed -i "/\\<EMAIL_HOST_PASSWORD\\>/c\\EMAIL_HOST_PASSWORD = \'1Rycb8@2\'" hydroshare/local_settings.py
+        sed -i "/\\<EMAIL_HOST\\>/c\\EMAIL_HOST = \'mail.hydroshare.org\'" hydroshare/local_settings.py
+        sed -i "/\\<EMAIL_PORT\\>/c\\EMAIL_PORT = \'587\'" hydroshare/local_settings.py
+        sed -i "/\\<EMAIL_USE_TLS\\>/c\\EMAIL_USE_TLS = True" hydroshare/local_settings.py
+        sed -i "/\\<DEFAULT_FROM_EMAIL\\>/c\\DEFAULT_FROM_EMAIL = \'support@hydroshare.org\'" hydroshare/local_settings.py
+        sed -i "/\\<DEFAULT_SUPPORT_EMAIL\\>/c\\DEFAULT_SUPPORT_EMAIL = \'support@hydroshare.org\'" hydroshare/local_settings.py'''
+        sh '''echo "[{\\"fields\\": {\\"domain\\": \\""$HOSTNAME"\\", \\"name\\": \\"Default\\"}, \\"model\\": \\"sites.site\\", \\"pk\\": 1}]" > site_url.json'''
+        dir('irods') {
+         sh './use-local-irods.sh'
+        }
+         sh 'pwd'
+         sh 'ls'
+         sh 'export PATH=$PATH:/usr/local/bin'
+         sh './hsctl rebuild --db'
+         sh 'docker exec hydroshare python manage.py loaddata site_url.json'
+    } 
+     stage('Test'){
+        sh '''docker exec hydroshare ./run-tests-jenkins'''
+        sh '''./hsctl maint_on'''
+    }
+    stage('Archieve artifacts'){
+        dir('/home/hydro/hydroshare'){
+        archiveArtifacts artifacts: 'coverage.xml,nosetests.xml, pylint.out', onlyIfSuccessful: true
+        }
+    }
+    stage('delpoy'){
+        sh '''DEBUG=true
+        USE_WWW_RESOURCES=false
+        IRODS_ACCOUNT=devHydroProxy
+        if [[ ${DEBUG} == "true" ]]; then
+	    echo "INFO: Setting DEBUG = ${DEBUG}"
+	    sed -i "s/DEBUG.*/DEBUG = True/g" hydroshare/local_settings.py;
+        else
+     	echo "INFO: Setting DEBUG = ${DEBUG}"
+	    sed -i "s/DEBUG.*/DEBUG = False/g" hydroshare/local_settings.py;
+        fi
+        if [[ ${USE_WWW_RESOURCES} == "true" ]]; then
+	    echo "INFO: use www resources for deployment"
+        # get copy of www database and media files
+	    wget http://distribution.hydroshare.org/public_html/.backup/media.www.tar.gz
+	    wget http://distribution.hydroshare.org/public_html/.backup/pg.www.sql
+
+	    # install media files
+	    tar -xzf media.www.tar.gz
+	    mkdir hydroshare/static
+	    cp -r media_files/media hydroshare/static
+    
+        # Configure database
+	    sed -i "s/HS_DATABASE:.*/HS_DATABASE: pg.www.sql/g" config/hydroshare-config.yaml;
+        else
+	    echo "INFO: deploy using pg.development.sql";
+        fi'''
+        sh '''ICAT2IP=$(docker exec users.local.org /sbin/ip -f inet -4 -o addr | grep eth | cut -d \'/\' -f 1 | rev | cut -d \' \' -f 1 | rev)
+        sshpass -p "hsuserproxy" scp -o StrictHostKeyChecking=no /home/hydro/hydroshare/irods/create_user.sh hsuserproxy@${ICAT2IP}:/home/hsuserproxy/create_user.sh
+        sshpass -p "hsuserproxy" scp -o StrictHostKeyChecking=no /home/hydro/hydroshare/irods/delete_user.sh hsuserproxy@${ICAT2IP}:/home/hsuserproxy/delete_user.sh
+        sshpass -p "hsuserproxy" scp -o StrictHostKeyChecking=no /home/hydro/hydroshare/irods/env-files/use-local-irods.env hsuserproxy@${ICAT2IP}:/home/hsuserproxy/.irods/irods_environment.json
+        '''
+        sh '''./hsctl restart
+        '''
+    }
+}
