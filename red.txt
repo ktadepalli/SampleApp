@@ -1,4 +1,4 @@
-# CommonsShare nnnnn bbb
+# CommonsShare nnnn
 
 CommonsShare is Helium Team's Web User Interface that explores using the cloud to access and share FAIR Biomedical big data.
 
