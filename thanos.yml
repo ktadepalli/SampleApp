@@ -54,7 +54,7 @@
 
     - name: Create EC2 instances
       ec2:
-        key_name: id_rsa
+        key_name: jenkins
         instance_type: t2.micro
         image: ami-0f891ddb551de3ada    #-e41b618b
         region: ap-south-1
