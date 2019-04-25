@@ -91,6 +91,7 @@
 
 - hosts: ec2_instance_ips
   remote_user: centos
+  gather_facts: true
   become: True
   tasks:
     - name: Install httpd
