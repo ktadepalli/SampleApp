@@ -43,6 +43,10 @@
         security_group_names: secure,default,CentOS 7 -x86_64- - with Updates HVM-1901_01-AutogenByAWSMP-1
         aws_access_key: "{{ access }}"
         aws_secret_key: "{{ secret }}"
+        connection_draining_timeout
+        connection_draining_timeout: 60
+        idle_timeout: 300
+        cross_az_load_balancing: "yes"
         zones:
           - ap-south-1a
           - ap-south-1b
