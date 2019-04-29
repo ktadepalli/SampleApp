@@ -127,12 +127,12 @@
       with_items: "{{ ec2_instances.tagged_instances }}"
 
 
-    - name: Terminate instances
-      ec2:
-        instance_ids: "{{ item.id }}"
-        region: '{{ item.region }}'
-        aws_access_key: "{{ access }}"
-        aws_secret_key: "{{ secret }}"
-        state: absent
-        wait: True
-      with_items: "{{ ec2_instances.tagged_instances }}"
+   # - name: Terminate instances
+      #ec2:
+       # instance_ids: "{{ item.id }}"
+        #region: '{{ item.region }}'
+        #aws_access_key: "{{ access }}"
+        #aws_secret_key: "{{ secret }}"
+        #state: absent
+        #wait: True
+     # with_items: "{{ ec2_instances.tagged_instances }}"
