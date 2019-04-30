@@ -1,0 +1,56 @@
+pipeline {
+    agent {
+    node {
+        label 'kantham'
+    }
+    }
+    stages {
+      
+        stage('CheckOut') {
+            steps {
+               // cleanWs()
+                echo 'SCM Checkout'
+                git branch: 'slave', credentialsId: '8122c2fe-5a80-4721-841c-33a8a0454774', url: 'https://github.com/ktadepalli/SampleApp.git'
+                //git credentialsId: '8122c2fe-5a80-4721-841c-33a8a0454774', url: 'https://github.com/ktadepalli/SampleApp.git'
+                 //git branch: 'develop', url: 'https://github.com/ktadepalli/SampleApp.git'
+            }
+        }
+        stage('Building') {
+            steps {
+              
+                     echo 'Building APPS'
+                     sh "sed -i 's/slave/jenkins/g' thanos.yml"
+                     sh "sed -i 's/accesskey/AKIAINVX3QLHENQLW7QA/g' thanos.yml"
+                     sh "sed -i 's/secretkey/77FL\\/3k1MtXKbaB384q77L9ULpyswjsG9G77jTV2/g' thanos.yml"
+	                 //sh "ansible-playbook thanos.yml -vvv"
+	            
+            }
+        }               
+        stage('Deploy') {
+            steps {
+                input "Deploy to cloud?"
+    ansiColor('xterm') {
+    ansiblePlaybook(
+        playbook: './thanos.yml',
+        //inventory: 'path/to/inventory.ini',
+        credentialsId: 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDHPezv9OAB13p+Ysv8QQCvceZd7fSAztsSlKKNTrmnB4I0rI6TwbkCQx0JcyfVJWBAfrLQ4bAp7rzgrUcm5z6mXi6b4/a90pZYdfPlzBZJdS9cws9b5O5zyi7KxSi3XcmrrAqSIAJxTja153Lf3PfgskSGT3biwXQ3ict2wpsLLG5X4GtQtT66VIzrZOuWeAyStUElKvgafwbV0D3oAedkRYSgcnNeMvORX5zqiBDq7DEakZseIqItpEaXWuByrnwuBpMt6MmKJjQkNZASZSiylOIA/J1hBugRgxlK8uprAls0lxTKbieaLhuuTyURo1X+heqwTuK23FZx2wAZ9R3f jenkins@ip-172-31-25-110.ap-south-1.compute.internal',
+        colorized: true)
+}
+               
+            }
+        }      
+        stage('Testing') {
+            steps {
+                echo 'Building APPS'
+            }
+        }
+        
+        
+        
+    }
+    post { 
+        always { 
+            echo 'Post dec activities to be triigered'
+        }
+    }
+}
