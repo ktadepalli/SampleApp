@@ -2,7 +2,7 @@
 - hosts: localhost
   vars:
      application: united
-     instance_count: 3
+     instance_count: 1
      access: accesskey
      secret: secretkey
   tasks:
@@ -57,7 +57,7 @@
 
     - name: Create EC2 instances
       ec2:
-        key_name: jenkins
+        key_name: slave
         instance_type: t2.micro
         image: ami-0f891ddb551de3ada    #-e41b618b
         region: ap-south-1
@@ -67,7 +67,7 @@
         wait: yes
         instance_tags:
           application: united
-        exact_count: 3
+        exact_count: 1
         count_tag:
           application: united
       register: ec2_instances
@@ -127,12 +127,12 @@
       with_items: "{{ ec2_instances.tagged_instances }}"
 
 
-   # - name: Terminate instances
-      #ec2:
-       # instance_ids: "{{ item.id }}"
-        #region: '{{ item.region }}'
-        #aws_access_key: "{{ access }}"
-        #aws_secret_key: "{{ secret }}"
-        #state: absent
-        #wait: True
-     # with_items: "{{ ec2_instances.tagged_instances }}"
+    - name: Terminate instances
+      ec2:
+        instance_ids: "{{ item.id }}"
+        region: '{{ item.region }}'
+        aws_access_key: "{{ access }}"
+        aws_secret_key: "{{ secret }}"
+        state: absent
+        wait: True
+      with_items: "{{ ec2_instances.tagged_instances }}"
