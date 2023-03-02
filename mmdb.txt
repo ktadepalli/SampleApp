@@ -1,1 +1,12 @@
-eta1d 0701_Release/TSO01
+import boto3
+
+def lambda_handler(event, context):
+    target_group_arn = 'arn:aws:elasticloadbalancing:us-east-1:123456789012:targetgroup/my-targets/73e2d6bc24d8a067'
+    elbv2 = boto3.client('elbv2')
+    
+    targets = elbv2.describe_target_health(TargetGroupArn=target_group_arn)
+    instance_id = targets['TargetHealthDescriptions'][0]['Target']['Id']
+    
+    print('Instance ID:', instance_id)
+    
+    return instance_id
