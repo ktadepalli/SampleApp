@@ -1,40 +1,16 @@
-import requests
-import json
-
-# Venafi API endpoint URL
-url = "https://your-venafi-instance.example.com/api/v1/certificate"
-
-# Venafi API key
-api_key = "your-api-key"
-
-# Venafi Zone
-zone = "your-zone"
-
-# Certificate details
-common_name = "example.com"
-san = ["www.example.com"]
-validity_period = 365
-
-# Certificate request JSON object
-certificate_request = {
-    "certificate_request": {
-        "common_name": common_name,
-        "dns_names": san,
-        "validity_period": validity_period,
-        "zone": zone
-    }
+resource "aws_cloudwatch_metric_alarm" "lambda_error_alarm" {
+  alarm_name          = "lambda_error_alarm"
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  evaluation_periods  = "1"
+  metric_name         = "Errors"
+  namespace           = "AWS/Lambda"
+  period              = "60"
+  statistic           = "Sum"
+  threshold           = "1"
+  alarm_description   = "Alarm when Lambda function errors exceed 1"
+  alarm_actions       = ["${aws_sns_topic.lambda_topic.arn}"]
 }
 
-# Send the certificate request to Venafi
-response = requests.post(
-    url, 
-    headers={
-        "Content-Type": "application/json",
-        "X-Venafi-API-Key": api_key
-    },
-    data=json.dumps(certificate_request)
-)
-
-# Print the response from Venafi
-print(response.json())
-
+resource "aws_sns_topic" "lambda_topic" {
+  name = "lambda_topic"
+}
