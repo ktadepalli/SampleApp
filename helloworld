@@ -1,56 +1,18 @@
+import logging
 
-import requests
-import json
+class posteres:
+    def __init__(self):
+        self.logger = logging.getLogger(__name__)
+        # rest of the code for initializing the object goes here
 
-# Set the TPP server URL and credentials
-tpp_url = 'https://example.com/vedsdk/'
-username = 'your_username'
-password = 'your_password'
-
-# Set the certificate request parameters
-common_name = 'example.com'
-san_dns_names = ['www.example.com', 'mail.example.com']
-key_type = 'RSA'
-key_size = 2048
-algorithm = 'SHA-256'
-org_unit = 'IT'
-
-# Build the request payload
-payload = {
-    'certificateRequest': {
-        'subject': {
-            'commonName': common_name,
-            'organizationUnits': [org_unit]
-        },
-        'sanDnsNames': san_dns_names,
-        'keyType': key_type,
-        'keySize': key_size,
-        'hashAlgorithm': algorithm,
-        'objectName': common_name
-    }
-}
-
-# Send the request to the TPP API
-response = requests.post(tpp_url + 'certificate-request',
-                         auth=(username, password),
-                         json=payload)
-
-# Parse the response JSON
-response_data = json.loads(response.text)
-
-# Extract the certificate ID from the response
-certificate_id = response_data['certificateDN']
-
-# Retrieve the certificate data from the TPP API
-response = requests.get(tpp_url + 'certificate/' + certificate_id,
-                        auth=(username, password))
-
-# Parse the response JSON
-response_data = json.loads(response.text)
-
-# Extract the certificate data from the response
-certificate_data = response_data['certificateData']
-private_key_data = response_data['privateKeyData']
-
-# Use the certificate and private key data as needed
-# For example, write them to files or install them in a web server or application
+    def raw_sql(self, sql):
+        self.logger.debug("class posteres.database")
+        if self.connected:
+            self.logger.debug("db connected")
+        else:
+            self.logger.error("class posteres.database.connected=None")
+            raise LambdaException({"Error": True, 'msg': "class posteres.database, connected=None"}) 
+        self.sql(sql) 
+        self.commit () 
+        self.logger.debug(f"Executed SQL query: {sql}")
+        return "SQL query executed successfully"
