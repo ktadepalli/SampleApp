@@ -1,0 +1,37 @@
+import base64
+
+# Original SQL content
+sql = "Truncate table theruleschema.PRSYSAPP1; \
+       Truncate table theruleschema.PRSYSAPP2; \
+       Truncate table theruleschema.PRSYSAPP3; \
+       Truncate table theruleschema.PRSYSAPP4;"
+
+# Encoding the SQL content using base64
+encoded_sql = base64.b64encode(sql.encode('utf-8')).decode('utf-8')
+
+print("Encoded SQL content:", encoded_sql)
+
+# Decoding the SQL content using base64
+decoded_sql = base64.b64decode(encoded_sql.encode('utf-8')).decode('utf-8')
+
+print("Decoded SQL content:", decoded_sql)
+=====
+
+
+import base64
+
+# Original SQL content
+sql = "Truncate table theruleschema.PRSYSAPP1; \
+       Truncate table theruleschema.PRSYSAPP2; \
+       Truncate table theruleschema.PRSYSAPP3; \
+       Truncate table theruleschema.PRSYSAPP4;"
+
+# Encoding the SQL content using base64
+encoded_sql = base64.encodebytes(sql.encode('utf-8')).decode('utf-8')
+
+print("Encoded SQL content:", encoded_sql)
+
+# Decoding the SQL content using base64
+decoded_sql = base64.decodebytes(encoded_sql.encode('utf-8')).decode('utf-8')
+
+print("Decoded SQL content:", decoded_sql)
