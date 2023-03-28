@@ -1,48 +1,36 @@
-pipeline {
-    agent any
-    stages {
-      
-        stage('CheckOut') {
-            steps {
-               // cleanWs()
-                echo 'SCM Checkout'
-                git credentialsId: '8122c2fe-5a80-4721-841c', url: 'https://github.com/ktadepalli/SampleApp.git'
-                 //git branch: 'develop', url: 'https://github.com/ktadepalli/SampleApp.git'
-            }
-        }
-        stage('Building') {
-            steps {
-                echo 'Building APPS'
-                     sh "sed -i 's/accesskey/AKIAINVX3QLHEkkA/g' thanos.yml"
-                     sh "sed -i 's/secretkey/77FL\\/3k1MtXKbaB384q77L9ULpys/g' thanos.yml"
-	  
-            }
-        }               
-        stage('Deploy') {
-            steps {
-                input "Deploy to cloud?"
-    ansiColor('xterm') {
-    ansiblePlaybook(
-        playbook: './thanos.yml',
-        //inventory: 'path/to/inventory.ini',
-        credentialsId: 'ssh-rsa AUQhTm9MVwiBC0/CphfCRFHqVyfM5WsqkRyPmoYHvJL/IZJYNPonTibh4kBzxeKQphWcLdfcEjxjerrj4lEItI5I5xMds2RFPw+dLBBV3iVW3e5Ziqbvnlwx6+OlAE9mn4wgv+Yk7A7Wt/BA9C9Mqkv5NCSxBJloYH root@ip-172-5.ap-south-1.compute.internal',
-        colorized: true)
+=====
+{
+  "curl": {
+    "url": "ftp://example.com/destination/path/newfile.txt",
+    "type": "PUT",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "data-binary": "",
+    "username": "username",
+    "password": "password"
+  },
+  "command": {
+    "type": "exec",
+    "command": "touch newfile.txt"
+  }
 }
-               
-            }
-        }      
-        stage('Testing') {
-            steps {
-                echo 'Building APPS'
-            }
-        }
-        
-        
-        
-    }
-    post { 
-        always { 
-            echo 'Post dec activities to be triigered'
-        }
-    }
+======this should work===
+
+{
+  "curl": {
+    "url": "ftp://example.com/destination/path/",
+    "type": "PUT",
+    "headers": {
+      "Content-Type": "application/octet-stream"
+    },
+    "auth": {
+      "username": "username",
+      "password": "password",
+      "method": "basic"
+    },
+    "data": "@localfile.txt"
+  }
 }
+
+
