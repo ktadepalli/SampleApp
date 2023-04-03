@@ -1,12 +1,16 @@
-import boto3
+import paramiko
 
-def lambda_handler(event, context):
-    target_group_arn = 'arn:aws:elasticloadbalancing:us-east-1:123456789012:targetgroup/my-targets/73e2d6bc24d8a067'
-    elbv2 = boto3.client('elbv2')
+# assume `private_key_file` is the path to the private key file
+try:
+    # read the private key file using paramiko
+    private_key = paramiko.RSAKey.from_private_key_file(private_key_file)
+except paramiko.ssh_exception.SSHException as e:
+    # handle any errors that occur during reading
+    print(f"Error reading private key: {e}")
+else:
+    # convert the private key to PuTTY format
+    putty_key = private_key.get_putty_private_key()
     
-    targets = elbv2.describe_target_health(TargetGroupArn=target_group_arn)
-    instance_id = targets['TargetHealthDescriptions'][0]['Target']['Id']
-    
-    print('Instance ID:', instance_id)
-    
-    return instance_id
+    # write the converted key to a file
+    with open("putty_key.ppk", "w") as f:
+        f.write(putty_key)
