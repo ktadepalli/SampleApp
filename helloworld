@@ -1,13 +1,10 @@
-import subprocess
+import requests
 
 def lambda_handler(event, context):
-    # Run the AWS CLI command to get the caller identity
-    result = subprocess.run(['aws', 'sts', 'get-caller-identity'], stdout=subprocess.PIPE)
-    
-    # Parse the output to extract the user ID
-    output = result.stdout.decode('utf-8')
-    user_id = json.loads(output)['UserId']
-    
-    print(f"The current AWS user is: {user_id}")
+    metadata_url = "http://169.254.169.254/latest/meta-data/iam/info"
+    response = requests.get(metadata_url)
+    response_json = response.json()
+    caller_identity = response_json["InstanceProfileArn"].split("/")[-1]
+    print(f"The current AWS user is: {caller_identity}")
     
     # Your function logic goes here...
