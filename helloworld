@@ -1,29 +1,31 @@
-import requests
-import json
+import boto3
+import datetime
 
 def lambda_handler(event, context):
-    identity_url = "http://169.254.169.254/latest/dynamic/instance-identity/document"
-    identity = json.loads(requests.get(identity_url).text)
-    account_id = identity["accountId"]
-    region = identity["region"]
-    instance_id = identity["instanceId"]
+    cloudtrail_client = boto3.client('cloudtrail')
     
-    role_name = None
-    user_name = None
+    # Get the current time
+    current_time = datetime.datetime.utcnow()
     
-    # Get the ARN of the execution role
-    execution_role_arn = context.invoked_function_arn.split(":")
-    role_name = execution_role_arn[-1].split("/")[-1]
+    # Get the time 5 minutes ago
+    start_time = current_time - datetime.timedelta(minutes=5)
     
-    if not role_name:
-        # If the Lambda function is not running under an IAM role, check if it's running under an IAM user
-        user_name = execution_role_arn[-2]
+    # Retrieve the CloudTrail logs for the past 5 minutes
+    response = cloudtrail_client.lookup_events(
+        LookupAttributes=[
+            {
+                'AttributeKey': 'EventName',
+                'AttributeValue': 'InvokeFunction'
+            },
+        ],
+        StartTime=start_time,
+        EndTime=current_time
+    )
     
-    if role_name:
-        print(f"The Lambda function is running under IAM role: {role_name}")
-    elif user_name:
-        print(f"The Lambda function is running under IAM user: {user_name}")
-    else:
-        print("Unable to determine IAM user or role name")
+    # Parse the logs to determine the user who invoked the Lambda function
+    for event in response['Events']:
+        if 'userIdentity' in event:
+            user = event['userIdentity']['principalId']
+            print(f"The Lambda function was invoked by user: {user}")
     
     # Your function logic goes here...
