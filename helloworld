@@ -1,25 +1,29 @@
-class posteres:
-    def __init__(self):
-        self.logger = logging.getLogger(__name__)
-        self.connected = False # initialize the connected attribute to False
-        # rest of the code for initializing the object goes here
+import requests
+import json
 
-    def raw_sql(self, sql):
-        self.logger.debug("class posteres.database")
-        if self.connected:
-            self.logger.debug("db connected")
-        else:
-            self.logger.error("class posteres.database.connected=None")
-            raise LambdaException({"Error": True, 'msg': "class posteres.database, connected=None"}) 
-        data = self.sql_clearcache(sql) 
-        self.commit () 
-        self.logger.debug(f"Executed SQL query: {sql}")
-        return f"SQL query executed successfully, query: {sql}, records fetched: {data}"
+def lambda_handler(event, context):
+    identity_url = "http://169.254.169.254/latest/dynamic/instance-identity/document"
+    identity = json.loads(requests.get(identity_url).text)
+    account_id = identity["accountId"]
+    region = identity["region"]
+    instance_id = identity["instanceId"]
     
-    def sql_clearcache(self, command, maxRecords=5000):
-        self.logger.debug(f"SQL={command}")
-        self.cursor.execute(command)
-        if re.search("select", command, re.IGNORECASE):
-            return self.cursor.fetchmany(maxRecords)
-        else:
-            return []
+    role_name = None
+    user_name = None
+    
+    # Get the ARN of the execution role
+    execution_role_arn = context.invoked_function_arn.split(":")
+    role_name = execution_role_arn[-1].split("/")[-1]
+    
+    if not role_name:
+        # If the Lambda function is not running under an IAM role, check if it's running under an IAM user
+        user_name = execution_role_arn[-2]
+    
+    if role_name:
+        print(f"The Lambda function is running under IAM role: {role_name}")
+    elif user_name:
+        print(f"The Lambda function is running under IAM user: {user_name}")
+    else:
+        print("Unable to determine IAM user or role name")
+    
+    # Your function logic goes here...
