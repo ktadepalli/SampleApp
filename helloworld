@@ -1,31 +1,13 @@
-import boto3
-import datetime
+import subprocess
 
 def lambda_handler(event, context):
-    cloudtrail_client = boto3.client('cloudtrail')
+    # Run the AWS CLI command to get the caller identity
+    result = subprocess.run(['aws', 'sts', 'get-caller-identity'], stdout=subprocess.PIPE)
     
-    # Get the current time
-    current_time = datetime.datetime.utcnow()
+    # Parse the output to extract the user ID
+    output = result.stdout.decode('utf-8')
+    user_id = json.loads(output)['UserId']
     
-    # Get the time 5 minutes ago
-    start_time = current_time - datetime.timedelta(minutes=5)
-    
-    # Retrieve the CloudTrail logs for the past 5 minutes
-    response = cloudtrail_client.lookup_events(
-        LookupAttributes=[
-            {
-                'AttributeKey': 'EventName',
-                'AttributeValue': 'InvokeFunction'
-            },
-        ],
-        StartTime=start_time,
-        EndTime=current_time
-    )
-    
-    # Parse the logs to determine the user who invoked the Lambda function
-    for event in response['Events']:
-        if 'userIdentity' in event:
-            user = event['userIdentity']['principalId']
-            print(f"The Lambda function was invoked by user: {user}")
+    print(f"The current AWS user is: {user_id}")
     
     # Your function logic goes here...
