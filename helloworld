@@ -1,10 +1,26 @@
-import requests
+import boto3
 
 def lambda_handler(event, context):
-    metadata_url = "http://169.254.169.254/latest/meta-data/iam/info"
-    response = requests.get(metadata_url)
-    response_json = response.json()
-    caller_identity = response_json["InstanceProfileArn"].split("/")[-1]
-    print(f"The current AWS user is: {caller_identity}")
-    
-    # Your function logic goes here...
+    # Retrieve the authentication token from the input event
+    auth_token = event['headers']['Authorization']
+
+    # Initialize the Cognito identity provider client
+    cognito_client = boto3.client('cognito-idp')
+
+    # Retrieve information about the user from Cognito
+    user_info = cognito_client.get_user(
+        AccessToken=auth_token
+    )
+
+    # Extract the user's email address from the user info
+    email = None
+    for attribute in user_info['UserAttributes']:
+        if attribute['Name'] == 'email':
+            email = attribute['Value']
+            break
+
+    # Return the user's email address as the output of the Lambda function
+    return {
+        'statusCode': 200,
+        'body': f'User email address: {email}'
+    }
