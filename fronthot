@@ -1,12 +1,16 @@
-import boto3
-
-# Set the AWS region and S3 bucket name
-region_name = 'us-east-1'
-bucket_name = 'my-bucket-name'
-
-# Create an S3 client using the default credentials associated with the EC2 instance
-s3 = boto3.client('s3', region_name=region_name)
-
-# Upload a file to S3
-with open('/path/to/local/file', 'rb') as file:
-    s3.upload_fileobj(file, bucket_name, 'object/key')
+{
+  "schemaVersion": "2.2",
+  "description": "Invoke Step Functions workflow with parameters",
+  "mainSteps": [
+    {
+      "action": "aws:executeAwsApi",
+      "name": "InvokeStepFunctionsWorkflow",
+      "inputs": {
+        "Service": "states",
+        "Action": "StartExecution",
+        "StateMachineArn": "arn:aws:states:us-west-2:123456789012:stateMachine:MyStateMachine",
+        "Input": "{ \"input\": { \"key1\": \"value1\", \"key2\": \"value2\" } }"
+      }
+    }
+  ]
+}
