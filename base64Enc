@@ -1,0 +1,27 @@
+#Script for Base64 encoding
+import base64
+import sys
+import os
+
+if len(sys.argv) < 2:
+    print("Usage: python encode_sql.py <input_file>")
+    sys.exit()
+
+input_file = sys.argv[1]
+
+filename = os.path.splitext(os.path.basename(input_file))[0]
+
+with open(input_file, 'rb') as f:
+    sql_content = f.read()
+
+encoded_sql_content = base64.b64encode(sql_content)
+
+encoded_sql_string = encoded_sql_content.decode('utf-8')
+
+
+#print(encoded_sql_string)
+output_file = f"{filename}_encoded.txt"
+with open(output_file, 'wb') as f:
+    f.write(encoded_sql_content)
+print(f"Generated encoded content in file {output_file}")
+
