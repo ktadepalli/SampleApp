@@ -1,41 +1,44 @@
-#for checking rds cluster stopped or not
-import boto3
+#Script for base64 encode/decode
 
-def lambda_handler(event, context):
-    
-    # Replace <RDS_CLUSTER_IDENTIFIER> with the actual identifier of your RDS cluster
-    rds = boto3.client('rds')
-    cluster_status = rds.describe_db_clusters(DBClusterIdentifier='<RDS_CLUSTER_IDENTIFIER>')['DBClusters'][0]['Status']
-    
-    # Check if the cluster status is "stopped"
-    if cluster_status == 'stopped':
-        return "RDS cluster is stopped"
-    else:
-        return "RDS cluster is not stopped"
-        
-        
-#To check RDS started properly or not
-import boto3
+import base64
+import sys
+import os
 
-def lambda_handler(event, context):
+if len(sys.argv) < 3:
+    print("Usage: python encode_decode_sql.py <encode/decode> <input_file>")
+    sys.exit()
 
-    # Replace <RDS_CLUSTER_IDENTIFIER> with the actual identifier of your RDS cluster
-    rds = boto3.client('rds')
-    response = rds.describe_db_clusters(DBClusterIdentifier='<RDS_CLUSTER_IDENTIFIER>')
-    cluster_status = response['DBClusters'][0]['Status']
-    db_instances = response['DBClusters'][0]['DBClusterMembers']
 
-    # Check if the cluster status is "available"
-    if cluster_status == 'available':
-        # Check if all instances in the cluster are running
-        for instance in db_instances:
-            if instance['DBInstanceStatus'] != 'available':
-                return "RDS cluster is running, but some instances are not available"
-        return "RDS cluster is running properly"
-    else:
-        # Check if there are any errors reported in the response
-        if 'ResponseMetadata' in response and 'HTTPStatusCode' in response['ResponseMetadata'] and response['ResponseMetadata']['HTTPStatusCode'] != 200:
-            return "RDS cluster is not started properly. Error: " + str(response['ResponseMetadata']['HTTPStatusCode'])
-        else:
-            return "RDS cluster is not started properly"
+action = sys.argv[1]
+input_file = sys.argv[2]
 
+
+filename = os.path.splitext(os.path.basename(input_file))[0]
+
+if action == "encode":
+  
+    with open(input_file, 'rb') as f:
+        sql_content = f.read()
+
+    encoded_sql_content = base64.b64encode(sql_content)
+    output_file = f"{filename}_encoded.txt"
+    with open(output_file, 'wb') as f:
+        f.write(encoded_sql_content)
+    print(f"Generated encoded content in file {output_file}")
+
+elif action == "decode":
+
+    with open(input_file, 'rb') as f:
+        encoded_sql_content = f.read()
+
+
+    decoded_sql_content = base64.b64decode(encoded_sql_content)
+
+    output_file = f"{filename}_decoded.txt"
+    with open(output_file, 'wb') as f:
+        f.write(decoded_sql_content)
+    print(f"Generated decoded content in file {output_file}")
+
+else:
+    print("Invalid action specified. Allowed values are 'encode' and 'decode'")
+    sys.exit()
