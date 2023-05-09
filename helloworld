@@ -1,26 +1,33 @@
-import boto3
+import psycopg2
+import sys
+import json
+from decimal import Decimal
 
-def lambda_handler(event, context):
-    # Retrieve the authentication token from the input event
-    auth_token = event['headers']['Authorization']
+def decimal_default(obj):
+    if isinstance(obj, Decimal):
+        return float(obj)
+    raise TypeError
 
-    # Initialize the Cognito identity provider client
-    cognito_client = boto3.client('cognito-idp')
+def fetch_data(query):
+    # Connect to the database
+    conn = psycopg2.connect(database="mydatabase", user="myuser", password="mypassword", host="localhost", port="5432")
+    cur = conn.cursor()
 
-    # Retrieve information about the user from Cognito
-    user_info = cognito_client.get_user(
-        AccessToken=auth_token
-    )
+    # Execute the query and retrieve up to 100 records
+    cur.execute(query)
+    rows = cur.fetchall()
 
-    # Extract the user's email address from the user info
-    email = None
-    for attribute in user_info['UserAttributes']:
-        if attribute['Name'] == 'email':
-            email = attribute['Value']
-            break
+    # Close the cursor and database connection
+    cur.close()
+    conn.close()
 
-    # Return the user's email address as the output of the Lambda function
-    return {
-        'statusCode': 200,
-        'body': f'User email address: {email}'
-    }
+    # Check if the size of the rows variable is less than 6MB and the query starts with "SELECT"
+    rows_size = sys.getsizeof(json.dumps(rows, default=decimal_default))
+    if rows_size < 6000000 and query.lower().startswith("select"):
+        # Return the fetched rows
+        return rows
+    elif rows_size > 6000000:
+        # Return a message indicating that the query result is too large to display
+        return "Query result is too large to display"
+    else:
+        return "Error: Invalid query"
