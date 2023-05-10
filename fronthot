@@ -10,6 +10,8 @@ class CustomJSONEncoder(json.JSONEncoder):
             return float(obj)
         elif isinstance(obj, datetime):
             return obj.isoformat()
+        elif isinstance(obj, memoryview):
+            return obj.tobytes().decode()
         return super().default(obj)
 
 def fetch_data(query):
