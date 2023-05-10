@@ -1,44 +1,36 @@
-#Script for base64 encode/decode
-
-import base64
+import psycopg2
 import sys
-import os
+import json
+from decimal import Decimal
 
-if len(sys.argv) < 3:
-    print("Usage: python encode_decode_sql.py <encode/decode> <input_file>")
-    sys.exit()
+class DecimalEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, Decimal):
+            return float(obj)
+        return super().default(obj)
 
+def fetch_data(query):
+    # Connect to the database
+    conn = psycopg2.connect(database="mydatabase", user="myuser", password="mypassword", host="localhost", port="5432")
+    cur = conn.cursor()
 
-action = sys.argv[1]
-input_file = sys.argv[2]
+    # Execute the query and retrieve up to 100 records
+    cur.execute(query)
+    rows = cur.fetchall()
 
+    # Close the cursor and database connection
+    cur.close()
+    conn.close()
 
-filename = os.path.splitext(os.path.basename(input_file))[0]
+    # Check if the size of the rows variable is less than 6MB and the query starts with "SELECT"
+    rows_size = sys.getsizeof(json.dumps(rows, cls=DecimalEncoder))
+    if rows_size < 6000000 and query.lower().startswith("select"):
+        # Return the fetched rows as a JSON string
+        return json.dumps(rows, cls=DecimalEncoder)
+    else:
+        return json.dumps({"error": "Cannot display"})
 
-if action == "encode":
-  
-    with open(input_file, 'rb') as f:
-        sql_content = f.read()
-
-    encoded_sql_content = base64.b64encode(sql_content)
-    output_file = f"{filename}_encoded.txt"
-    with open(output_file, 'wb') as f:
-        f.write(encoded_sql_content)
-    print(f"Generated encoded content in file {output_file}")
-
-elif action == "decode":
-
-    with open(input_file, 'rb') as f:
-        encoded_sql_content = f.read()
-
-
-    decoded_sql_content = base64.b64decode(encoded_sql_content)
-
-    output_file = f"{filename}_decoded.txt"
-    with open(output_file, 'wb') as f:
-        f.write(decoded_sql_content)
-    print(f"Generated decoded content in file {output_file}")
-
-else:
-    print("Invalid action specified. Allowed values are 'encode' and 'decode'")
-    sys.exit()
+# Example usage:
+query = "SELECT * FROM mytable;"
+result = fetch_data(query)
+print(result)
