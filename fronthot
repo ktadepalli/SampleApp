@@ -2,11 +2,14 @@ import psycopg2
 import sys
 import json
 from decimal import Decimal
+from datetime import datetime
 
-class DecimalEncoder(json.JSONEncoder):
+class CustomJSONEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, Decimal):
             return float(obj)
+        elif isinstance(obj, datetime):
+            return obj.isoformat()
         return super().default(obj)
 
 def fetch_data(query):
@@ -23,10 +26,10 @@ def fetch_data(query):
     conn.close()
 
     # Check if the size of the rows variable is less than 6MB and the query starts with "SELECT"
-    rows_size = sys.getsizeof(json.dumps(rows, cls=DecimalEncoder))
+    rows_size = sys.getsizeof(json.dumps(rows, cls=CustomJSONEncoder))
     if rows_size < 6000000 and query.lower().startswith("select"):
         # Return the fetched rows as a JSON string
-        return json.dumps(rows, cls=DecimalEncoder)
+        return json.dumps(rows, cls=CustomJSONEncoder)
     else:
         return json.dumps({"error": "Cannot display"})
 
