@@ -11,7 +11,7 @@ class CustomJSONEncoder(json.JSONEncoder):
         elif isinstance(obj, datetime):
             return obj.isoformat()
         elif isinstance(obj, memoryview):
-            return obj.tobytes().decode()
+            return obj.tobytes().decode(errors='replace')
         return super().default(obj)
 
 def fetch_data(query):
