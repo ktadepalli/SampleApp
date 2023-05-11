@@ -1,41 +1,67 @@
-import psycopg2
-import sys
-import json
-from decimal import Decimal
-from datetime import datetime
+import boto3
+import os
+import pymysql
+import logging
 
-class CustomJSONEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, Decimal):
-            return float(obj)
-        elif isinstance(obj, datetime):
-            return obj.isoformat()
-        elif isinstance(obj, memoryview):
-            return obj.tobytes().decode(errors='replace')
-        return super().default(obj)
+# AWS RDS database configuration
+db_host = os.environ['DB_HOST']
+db_name = os.environ['DB_NAME']
+db_user = os.environ['DB_USER']
+db_pass = os.environ['DB_PASS']
 
-def fetch_data(query):
-    # Connect to the database
-    conn = psycopg2.connect(database="mydatabase", user="myuser", password="mypassword", host="localhost", port="5432")
-    cur = conn.cursor()
+# AWS RDS database connection
+def get_db_connection():
+    try:
+        conn = pymysql.connect(host=db_host, user=db_user, password=db_pass, database=db_name)
+        print("Database connected successfully!")
+        return conn
+    except pymysql.MySQLError as e:
+        print("Error connecting to the database: ", e)
+        raise e
 
-    # Execute the query and retrieve up to 100 records
-    cur.execute(query)
-    rows = cur.fetchall()
-
-    # Close the cursor and database connection
-    cur.close()
-    conn.close()
-
-    # Check if the size of the rows variable is less than 6MB and the query starts with "SELECT"
-    rows_size = sys.getsizeof(json.dumps(rows, cls=CustomJSONEncoder))
-    if rows_size < 6000000 and query.lower().startswith("select"):
-        # Return the fetched rows as a JSON string
-        return json.dumps(rows, cls=CustomJSONEncoder)
-    else:
-        return json.dumps({"error": "Cannot display"})
-
-# Example usage:
-query = "SELECT * FROM mytable;"
-result = fetch_data(query)
-print(result)
+# AWS Lambda function handler
+def lambda_handler(event, context):
+    # Batch size
+    batch_size = 1000
+    
+    # Input query
+    input_query = event['query']
+    
+    # Offset and limit
+    offset = 0
+    limit = batch_size
+    
+    # Modify the input query to add a LIMIT clause
+    modified_query = f"{input_query} LIMIT %s, %s"
+    
+    # Database connection and cursor
+    conn = get_db_connection()
+    cursor = conn.cursor(pymysql.cursors.DictCursor)
+    
+    try:
+        # Fetch the records in batches
+        while True:
+            # Execute the modified query with the current offset and limit
+            cursor.execute(modified_query, (offset, limit))
+            
+            # Fetch the batch of records
+            batch = cursor.fetchall()
+            
+            # Check if there are more records
+            if len(batch) < batch_size:
+                # This is the last batch, so return the response
+                return batch
+                
+            # Send the batch as a separate response
+            yield batch
+            
+            # Increment the offset and limit
+            offset += batch_size
+            
+    except Exception as e:
+        logging.error("Error executing the query: %s", e)
+        raise e
+        
+    finally:
+        # Close the database connection
+        conn.close()
