@@ -1,0 +1,35 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: zookeeper-ui
+  labels:
+    app: zookeeper-ui
+spec:
+  ports:
+    - port: 9090
+      targetPort: 9090
+      nodePort: 32000
+  selector:
+    app: zookeeper-ui
+  type: NodePort
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zookeeper-ui
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: zookeeper-ui
+  template:
+    metadata:
+      labels:
+        app: zookeeper-ui
+    spec:
+      containers:
+      - name: zookeeper-ui
+        image: zookeeperui/zookeeperui
+        ports:
+        - containerPort: 9090
